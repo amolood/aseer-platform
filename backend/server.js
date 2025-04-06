@@ -13,7 +13,6 @@ app.use(express.urlencoded({ extended: true }));
 app.use("/api/persons", personRouter); // Updated route to avoid conflict
 
 // Start the server
-const PORT = 3000;
 app.listen(process.env.PORT || 5000, () => {
     console.log(`Server is running  `);
     connectToDatabase()
