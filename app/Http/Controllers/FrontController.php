@@ -2,16 +2,16 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Article;
+use App\Models\ArticleComment;
+use App\Models\Category;
+use App\Models\Contact;
 use App\Models\Detainee;
 use App\Models\DetaineePhoto;
-use Illuminate\Http\Request;
-use App\Models\Article;
-use App\Models\Tag;
-use App\Models\Contact;
-use App\Models\ArticleComment;
 use App\Models\Page;
-use App\Models\Category;
-
+use App\Models\Tag;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class FrontController extends Controller
 {
@@ -25,10 +25,10 @@ class FrontController extends Controller
     public function detainees(Request $request)
     {
         $detainees = Detainee::where('is_approved', true)
-            ->when($request->search, fn($q) => $q->where('name', 'like', '%' . $request->search . '%'))
-            ->when($request->location, fn($q) => $q->where('location', $request->location))
-            ->when($request->status, fn($q) => $q->where('status', $request->status))
-            ->when($request->date, fn($q) => $q->whereDate('detention_date', $request->date))
+            ->when($request->search, fn ($q) => $q->where('name', 'like', '%' . $request->search . '%'))
+            ->when($request->location, fn ($q) => $q->where('location', $request->location))
+            ->when($request->status, fn ($q) => $q->where('status', $request->status))
+            ->when($request->date, fn ($q) => $q->whereDate('detention_date', $request->date))
 //            ->where('status', '!=', 'martyr')
             ->with('photos')
             ->orderByDesc('id')
@@ -46,7 +46,11 @@ class FrontController extends Controller
     // عرض بيانات أسير مفصل
     public function detainee_show($id)
     {
-        $detainee = Detainee::where('is_approved', true)->findOrFail($id);
+        $detainee = Detainee::findOrFail($id);
+
+        if (! $detainee->is_approved && $detainee->user_id !== auth()->id()) {
+            abort(404);
+        }
 
 
         // جلب أسرى مشابهين بنفس الموقع أو الحالة
@@ -62,7 +66,6 @@ class FrontController extends Controller
         // جلب صور الأسير
         $photos = DetaineePhoto::where('detainee_id', $detainee->id)->get();
 
-        $detainee = Detainee::where('is_approved', true)->findOrFail($id);
         return view('front.pages.detainee-show', compact('detainee', 'relatedDetainees', 'photos'));
     }
 
@@ -75,7 +78,7 @@ class FrontController extends Controller
     // store detainee data
     public function detainee_store(Request $request)
     {
-        if (!$request->isMethod('post')) {
+        if (! $request->isMethod('post')) {
             abort(405); // Method Not Allowed
         }
 
@@ -99,7 +102,7 @@ class FrontController extends Controller
 
         $data['is_approved'] = false;
 
-        $detainee = Detainee::create($data);
+        $detainee = Auth::user()->detainees()->create($data);
 
         // store photos and mark first one as featured
         if ($request->hasFile('photos')) {
@@ -109,7 +112,7 @@ class FrontController extends Controller
                 DetaineePhoto::create([
                     'detainee_id' => $detainee->id,
                     'path' => $path,
-                    'is_featured' => !$detainee->photos()->exists() && $index === 0,
+                    'is_featured' => ! $detainee->photos()->exists() && $index === 0,
                 ]);
             }
         }
@@ -119,10 +122,6 @@ class FrontController extends Controller
 
             // تأكد من عدم تكرار المتابعة
             $detainee->followers()->syncWithoutDetaching([$user->id]);
-
-            // تعيين المستخدم كأساس لهذا الأسير
-            $detainee->user_id = $user->id;
-            $detainee->save();
 
             return view('front.pages.thanks');
         } else {
@@ -135,119 +134,130 @@ class FrontController extends Controller
 
     public function comment_post(Request $request)
     {
-        if(auth()->check()){
+        if (auth()->check()) {
             $request->validate([
-                "content"=>"required|min:3|max:10000",
+                "content" => "required|min:3|max:10000",
             ]);
             ArticleComment::create([
-                'user_id'=>auth()->user()->id,
-                'article_id'=>$request->article_id,
-                'content'=> $request->content,
+                'user_id' => auth()->user()->id,
+                'article_id' => $request->article_id,
+                'content' => $request->content,
             ]);
-        }else{
+        } else {
             $request->validate([
-                'adder_name'=>"nullable|min:3|max:190",
-                'adder_email'=>"nullable|email",
-                "content"=>"required|min:3|max:10000",
+                'adder_name' => "nullable|min:3|max:190",
+                'adder_email' => "nullable|email",
+                "content" => "required|min:3|max:10000",
             ]);
             ArticleComment::create([
-                'article_id'=>$request->article_id,
-                'adder_name'=>$request->adder_name,
-                'adder_email'=>$request->adder_email,
-                'content'=>$request->content,
+                'article_id' => $request->article_id,
+                'adder_name' => $request->adder_name,
+                'adder_email' => $request->adder_email,
+                'content' => $request->content,
             ]);
         }
         toastr()->success("تم اضافة تعليقك بنجاح وسيظهر للعامة بعد المراجعة");
+
         return redirect()->back();
     }
 
     public function contact_post(Request $request)
     {
         $request->validate([
-            'name'=>"required|min:3|max:190",
-            'email'=>"nullable|email",
-            "phone"=>"required|numeric",
-            "message"=>"required|min:3|max:10000",
+            'name' => "required|min:3|max:190",
+            'email' => "nullable|email",
+            "phone" => "required|numeric",
+            "message" => "required|min:3|max:10000",
         ]);
         //if(\MainHelper::recaptcha($request->recaptcha)<0.8)abort(401);
         Contact::create([
-            'user_id'=>auth()->check()?auth()->id():NULL,
-            'name'=>$request->name,
-            'email'=>$request->email,
-            'phone'=>$request->phone,
-            'message'=>/*"قادم من : ".urldecode(url()->previous())."\n\nالرسالة : ".*/$request->message
+            'user_id' => auth()->check()?auth()->id():null,
+            'name' => $request->name,
+            'email' => $request->email,
+            'phone' => $request->phone,
+            'message' => /*"قادم من : ".urldecode(url()->previous())."\n\nالرسالة : ".*/$request->message,
         ]);
 
         toastr()->success('تم استلام رسالتك بنجاح وسنتواصل معك في أقرب وقت');
+
         return redirect()->back();
     }
-    public function category(Request $request,Category $category){
-        $articles = Article::where(function($q)use($request,$category){
-            if($request->user_id!=null)
-                $q->where('user_id',$request->user_id);
-
-            $q->whereHas('categories',function($q)use($request,$category){
-                $q->where('category_id',$category->id);
-            });
-        })->with(['categories','tags'])->withCount(['comments'=>function($q){$q->where('reviewed',1);}])->orderBy('id','DESC')->paginate();
-        return view('front.pages.blog',compact('articles','category'));
-    }
-    public function tag(Request $request,Tag $tag){
-
-        $articles = Article::where(function($q)use($request,$tag){
-            if($request->user_id!=null)
-                $q->where('user_id',$request->user_id);
-
-            $q->whereHas('tags',function($q)use($request,$tag){
-                $q->where('tag_id',$tag->id);
-            });
-        })->with(['categories','tags'])->withCount(['comments'=>function($q){$q->where('reviewed',1);}])->orderBy('id','DESC')->paginate();
-
-        return view('front.pages.blog',compact('articles','tag'));
-    }
-    public function article(Request $request,Article $article)
+    public function category(Request $request, Category $category)
     {
-        $article->load(['categories','comments'=>function($q){$q->where('reviewed',1);},'tags'])->loadCount(['comments'=>function($q){$q->where('reviewed',1);}]);
-        $this->views_increase_article($article);
-        return view('front.pages.article',compact('article'));
+        $articles = Article::where(function ($q) use ($request, $category) {
+            if ($request->user_id != null) {
+                $q->where('user_id', $request->user_id);
+            }
+
+            $q->whereHas('categories', function ($q) use ($request, $category) {
+                $q->where('category_id', $category->id);
+            });
+        })->with(['categories','tags'])->withCount(['comments' => function ($q) {$q->where('reviewed', 1);}])->orderBy('id', 'DESC')->paginate();
+
+        return view('front.pages.blog', compact('articles', 'category'));
     }
-    public function page(Request $request,Page $page)
+    public function tag(Request $request, Tag $tag)
+    {
+
+        $articles = Article::where(function ($q) use ($request, $tag) {
+            if ($request->user_id != null) {
+                $q->where('user_id', $request->user_id);
+            }
+
+            $q->whereHas('tags', function ($q) use ($request, $tag) {
+                $q->where('tag_id', $tag->id);
+            });
+        })->with(['categories','tags'])->withCount(['comments' => function ($q) {$q->where('reviewed', 1);}])->orderBy('id', 'DESC')->paginate();
+
+        return view('front.pages.blog', compact('articles', 'tag'));
+    }
+    public function article(Request $request, Article $article)
+    {
+        $article->load(['categories','comments' => function ($q) {$q->where('reviewed', 1);},'tags'])->loadCount(['comments' => function ($q) {$q->where('reviewed', 1);}]);
+        $this->views_increase_article($article);
+
+        return view('front.pages.article', compact('article'));
+    }
+    public function page(Request $request, Page $page)
     {
 
         $customView = 'front.pages.custom-pages.' . $page->slug;
 
-        if(view()->exists($customView)) {
+        if (view()->exists($customView)) {
             // If the file exists, return custom page
-            return view($customView,compact('page'));
+            return view($customView, compact('page'));
         }
 
-        return view('front.pages.page',compact('page'));
+        return view('front.pages.page', compact('page'));
     }
     public function blog(Request $request)
     {
-        $articles = Article::where(function($q)use($request){
-            if($request->category_id!=null)
-                $q->where('category_id',$request->category_id);
-            if($request->user_id!=null)
-                $q->where('user_id',$request->user_id);
-        })->with(['categories','tags'])->withCount(['comments'=>function($q){$q->where('reviewed',1);}])->orderBy('id','DESC')->paginate();
-        return view('front.pages.blog',compact('articles'));
+        $articles = Article::where(function ($q) use ($request) {
+            if ($request->category_id != null) {
+                $q->where('category_id', $request->category_id);
+            }
+            if ($request->user_id != null) {
+                $q->where('user_id', $request->user_id);
+            }
+        })->with(['categories','tags'])->withCount(['comments' => function ($q) {$q->where('reviewed', 1);}])->orderBy('id', 'DESC')->paginate();
+
+        return view('front.pages.blog', compact('articles'));
     }
     public function views_increase_article(Article $article)
     {
-        $data= [
-            'ip'=>\UserSystemInfoHelper::get_ip(),
-            'prev_link'=>\UserSystemInfoHelper::prev_url(),
-            'agent_name'=>request()->header('User-Agent'),
-            'browser'=>\UserSystemInfoHelper::get_browsers(),
-            'device'=>\UserSystemInfoHelper::get_device(),
-            'operating_system'=>\UserSystemInfoHelper::get_os()
+        $data = [
+            'ip' => \UserSystemInfoHelper::get_ip(),
+            'prev_link' => \UserSystemInfoHelper::prev_url(),
+            'agent_name' => request()->header('User-Agent'),
+            'browser' => \UserSystemInfoHelper::get_browsers(),
+            'device' => \UserSystemInfoHelper::get_device(),
+            'operating_system' => \UserSystemInfoHelper::get_os(),
         ];
-        \App\Jobs\ItemSeenInsertJob::dispatch("\App\Models\Article",$article->id,$data);
+        \App\Jobs\ItemSeenInsertJob::dispatch("\App\Models\Article", $article->id, $data);
     }
-    public function builder(Request $request){
+    public function builder(Request $request)
+    {
         return view('front.pages.builder');
     }
 
 }
-
