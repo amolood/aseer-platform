@@ -12,6 +12,7 @@ use App\Models\Page;
 use App\Models\Tag;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
 
 class FrontController extends Controller
 {
@@ -129,8 +130,87 @@ class FrontController extends Controller
         }
     }
 
+    // نموذج تعديل بيانات أسير
+    public function detainee_edit($id)
+    {
+        $detainee = Detainee::findOrFail($id);
 
+        // Check if the user is authorized to edit this detainee
+        if ($detainee->user_id !== auth()->id()) {
+            abort(403, 'غير مصرح لك بتعديل بيانات هذا الأسير.');
+        }
 
+        $photos = DetaineePhoto::where('detainee_id', $detainee->id)->get();
+
+        return view('front.pages.detainee-edit', compact('detainee', 'photos'));
+    }
+
+    // تحديث بيانات الأسير
+    public function detainee_update(Request $request, $id)
+    {
+        if (! $request->isMethod('put')) {
+            abort(405); // Method Not Allowed
+        }
+
+        $detainee = Detainee::findOrFail($id);
+
+        // Check if the user is authorized to update this detainee
+        if ($detainee->user_id !== auth()->id()) {
+            abort(403, 'غير مصرح لك بتعديل بيانات هذا الأسير.');
+        }
+
+        $data = $request->validate([
+            'name' => 'required|string|max:255',
+            'gender' => 'nullable|in:male,female',
+            'birth_date' => 'nullable|date',
+            'location' => 'nullable|string|max:255',
+            'detention_date' => 'nullable|date',
+            'status' => 'required|in:detained,missing,released,martyr',
+            'detaining_authority' => 'nullable|string|max:255',
+            'prison_name' => 'nullable|string|max:255',
+            'is_forced_disappearance' => 'nullable|boolean',
+            'family_contact_name' => 'nullable|string|max:255',
+            'family_contact_phone' => 'nullable|string|max:255',
+            'notes' => 'nullable|string',
+            'source' => 'nullable|string|max:255',
+            'photos' => 'nullable|array',
+            'photos.*' => 'image|max:2048',
+            'deleted_photos' => 'nullable|string',
+        ]);
+
+        $detainee->update($data);
+
+        // Handle deleted photos
+        if ($request->filled('deleted_photos')) {
+            $deletedPhotoIds = explode(',', $request->deleted_photos);
+            foreach ($deletedPhotoIds as $photoId) {
+                $photo = DetaineePhoto::find($photoId);
+                if ($photo && $photo->detainee_id === $detainee->id) {
+                    // Delete the file from storage
+                    if (Storage::disk('public')->exists($photo->path)) {
+                        Storage::disk('public')->delete($photo->path);
+                    }
+                    $photo->delete();
+                }
+            }
+        }
+
+        // store new photos
+        if ($request->hasFile('photos')) {
+            foreach ($request->file('photos') as $photo) {
+                $path = $photo->store('detainees', 'public');
+
+                DetaineePhoto::create([
+                    'detainee_id' => $detainee->id,
+                    'path' => $path,
+                    'is_featured' => ! $detainee->photos()->exists(),
+                ]);
+            }
+        }
+
+        return redirect()->route('front.detainees.show', $detainee->id)
+            ->with('success', 'تم تحديث بيانات الأسير بنجاح.');
+    }
 
     public function comment_post(Request $request)
     {

@@ -60,8 +60,11 @@ Route::get('/detainees/create', [FrontController::class, 'detainee_create'])->mi
 // عرض بيانات أسير مفصلة
 Route::get('/detainees/{id}', [FrontController::class, 'detainee_show'])->name('front.detainees.show');
 // تخزين بيانات الأسير المُرسل من الزائر
-
 Route::post('/detainees', [FrontController::class, 'detainee_store'])->name('front.detainees.store');
+// نموذج تعديل بيانات أسير
+Route::get('/detainees/{id}/edit', [FrontController::class, 'detainee_edit'])->middleware('auth')->name('front.detainees.edit');
+// تحديث بيانات الأسير
+Route::put('/detainees/{id}', [FrontController::class, 'detainee_update'])->middleware('auth')->name('front.detainees.update');
 
 Route::prefix('admin')->middleware(['auth'])->group(function () {
     Route::delete('/detainees/photo/delete/{id}', [BackendDetaineeController::class, 'deletePhoto'])->name('admin.detainees.photo.delete')

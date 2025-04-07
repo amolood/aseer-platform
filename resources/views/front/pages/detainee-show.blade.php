@@ -48,6 +48,13 @@
                     </ul>
                 </div>
 
+                {{-- Edit button - only show if user is authorized to edit --}}
+                @if(auth()->check() && $detainee->user_id === auth()->id())
+                    <a href="{{ route('front.detainees.edit', $detainee->id) }}" class="btn btn-outline-warning rounded-pill px-4">
+                        <i class="fas fa-edit me-2"></i> تعديل البيانات
+                    </a>
+                @endif
+
                 {{-- Other buttons --}}
 {{--                @if($detainee->status !== 'martyr')--}}
 {{--                    <button class="btn btn-outline-warning rounded-pill px-4" data-bs-toggle="modal" data-bs-target="#seenModal">--}}
