@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Detainee extends Model
 {
@@ -35,6 +36,10 @@ class Detainee extends Model
         'martyr_notes',
     ];
 
+    public function author(): BelongsTo
+    {
+        return $this->belongsTo(\App\Models\User::class);
+    }
 
 
     public function followers()

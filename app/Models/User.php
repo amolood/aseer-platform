@@ -4,16 +4,16 @@ namespace App\Models;
 
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use Spatie\Permission\Traits\HasRoles;
-
-use Spatie\MediaLibrary\MediaCollections\Models\Media;
-use Spatie\MediaLibrary\InteractsWithMedia;
-use Spatie\MediaLibrary\HasMedia;
-use Spatie\Image\Manipulations;
 use Spatie\Image\Enums\Fit;
 
+use Spatie\Image\Manipulations;
+use Spatie\MediaLibrary\HasMedia;
+use Spatie\MediaLibrary\InteractsWithMedia;
+use Spatie\MediaLibrary\MediaCollections\Models\Media;
+use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable implements HasMedia
 {
@@ -60,34 +60,43 @@ class User extends Authenticatable implements HasMedia
     ];*/
 
 
-    public function getUserAvatar($type="thumb"){
-        if($this->avatar==null)
+    public function getUserAvatar($type = "thumb")
+    {
+        if ($this->avatar == null) {
             return env('DEFAULT_IMAGE_AVATAR');
-        else
-            return env("STORAGE_URL").'/'.\MainHelper::get_conversion($this->avatar,$type);
+        } else {
+            return env("STORAGE_URL").'/'.\MainHelper::get_conversion($this->avatar, $type);
+        }
     }
 
     public function scopeWithoutTimestamps()
     {
         $this->timestamps = false;
+
         return $this;
     }
-    public function contacts(){
+    public function contacts()
+    {
         return $this->hasMany(\App\Models\Contact::class);
     }
-    public function articles(){
+    public function articles()
+    {
         return $this->hasMany(\App\Models\Article::class);
     }
-    public function comments(){
+    public function comments()
+    {
         return $this->hasMany(\App\Models\ArticleComment::class);
     }
-    public function traffics(){
+    public function traffics()
+    {
         return $this->hasMany(\App\Models\RateLimit::class);
     }
-    public function logs(){
-        return $this->hasMany(\App\Models\RateLimitDetail::class,'user_id');
+    public function logs()
+    {
+        return $this->hasMany(\App\Models\RateLimitDetail::class, 'user_id');
     }
-    public function report_errors(){
+    public function report_errors()
+    {
         return $this->hasMany(\App\Models\ReportError::class);
     }
 
@@ -116,10 +125,19 @@ class User extends Authenticatable implements HasMedia
 
     }
 
-    public function is_online(){
-        if($this->last_activity<\Carbon::now()->subMinutes(10)->format('Y-m-d H:i:s'))
-            return 0;return 1;
+    public function is_online()
+    {
+        if ($this->last_activity < \Carbon::now()->subMinutes(10)->format('Y-m-d H:i:s')) {
+            return 0;
+        }
+
+        return 1;
         //return $this->last_activity;
+    }
+
+    public function detainees(): HasMany
+    {
+        return $this->hasMany(\App\Models\Detainee::class);
     }
 
     public function followedDetainees()
@@ -132,7 +150,7 @@ class User extends Authenticatable implements HasMedia
 
     public function item_seens()
     {
-        return $this->hasMany(\App\Models\ItemSeen::class,'type_id','id')->where('type',"USER");
+        return $this->hasMany(\App\Models\ItemSeen::class, 'type_id', 'id')->where('type', "USER");
     }
 
     public function isFollowing($detaineeId)
