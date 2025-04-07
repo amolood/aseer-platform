@@ -2,9 +2,9 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
 use App\Models\Contact;
 use App\Models\ContactReply;
+use Illuminate\Http\Request;
 
 class FrontendProfileController extends Controller
 {
@@ -12,6 +12,11 @@ class FrontendProfileController extends Controller
     {
         return view('front.user.index');
     }
+    public function detainees(Request $request)
+    {
+        return view('front.user.detainees');
+    }
+
     public function balances(Request $request)
     {
         return view('front.user.balances');
@@ -27,40 +32,42 @@ class FrontendProfileController extends Controller
     public function store_ticket(Request $request)
     {
         $ticket = \App\Models\Contact::create([
-            'user_id'=>auth()->user()->id,
-            'name'=>auth()->user()->name,
-            'email'=>auth()->user()->email,
-            'message'=>$request->message
+            'user_id' => auth()->user()->id,
+            'name' => auth()->user()->name,
+            'email' => auth()->user()->email,
+            'message' => $request->message,
         ]);
-        if($request->files !=null){
-            foreach($request->files as $file){
+        if ($request->files != null) {
+            foreach ($request->files as $file) {
                 $ticket->addMedia($file)->toMediaCollection();
             }
         }
-        return redirect()->route('user.ticket',$ticket);
+
+        return redirect()->route('user.ticket', $ticket);
     }
-    
-    public function ticket(Request $request,Contact $ticket)
+
+    public function ticket(Request $request, Contact $ticket)
     {
-        return view('front.user.ticket',compact('ticket'));
+        return view('front.user.ticket', compact('ticket'));
     }
     public function reply_ticket(Request $request)
     {
         $request->validate([
-            'message'=>"required|string|min:10|max:1000",
+            'message' => "required|string|min:10|max:1000",
         ]);
-        $ticket = \App\Models\Contact::where('user_id',auth()->user()->id)->where('id',$request->ticket_id)->firstOrFail();
+        $ticket = \App\Models\Contact::where('user_id', auth()->user()->id)->where('id', $request->ticket_id)->firstOrFail();
         ContactReply::create([
-            'user_id'=>auth()->user()->id,
-            'is_support_reply'=>0,
-            'contact_id'=>$ticket->id,
-            'content'=>$request->message
+            'user_id' => auth()->user()->id,
+            'is_support_reply' => 0,
+            'contact_id' => $ticket->id,
+            'content' => $request->message,
         ]);
+
         return redirect()->back()->with([
-            'message'=>"تم ارسال رسالتك بنجاح",
-            'alert-type'=>"warning"
+            'message' => "تم ارسال رسالتك بنجاح",
+            'alert-type' => "warning",
         ]);
-        
+
     }
     public function notifications(Request $request)
     {

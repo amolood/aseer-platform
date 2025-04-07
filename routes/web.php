@@ -1,42 +1,42 @@
 <?php
 # Backend Controllers
 use App\Http\Controllers\Auth\RegisterController;
-use App\Http\Controllers\Backend\BackendDetaineeController;
-use App\Http\Controllers\Backend\BackendPluginController;
-use App\Http\Controllers\DetaineeFollowController;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Backend\BackendAdminController;
-use App\Http\Controllers\Backend\BackendNotificationsController;
-use App\Http\Controllers\Backend\BackendHelperController;
-use App\Http\Controllers\Backend\BackendTestController;
-use App\Http\Controllers\Backend\BackendProfileController;
-use App\Http\Controllers\Backend\BackendArticleController;
+use App\Http\Controllers\Backend\BackendAnnouncementController;
 use App\Http\Controllers\Backend\BackendArticleCommentController;
-use App\Http\Controllers\Backend\BackendSiteMapController;
-use App\Http\Controllers\Backend\BackendSettingController;
-use App\Http\Controllers\Backend\BackendContactController;
+use App\Http\Controllers\Backend\BackendArticleController;
+use App\Http\Controllers\Backend\BackendBuilderController;
 use App\Http\Controllers\Backend\BackendCategoryController;
-use App\Http\Controllers\Backend\BackendRedirectionController;
-use App\Http\Controllers\Backend\BackendUserController;
-use App\Http\Controllers\Backend\BackendTrafficsController;
-use App\Http\Controllers\Backend\BackendPageController;
+use App\Http\Controllers\Backend\BackendContactController;
+use App\Http\Controllers\Backend\BackendContactReplyController;
+use App\Http\Controllers\Backend\BackendDetaineeController;
+use App\Http\Controllers\Backend\BackendFaqController;
+use App\Http\Controllers\Backend\BackendFileController;
+use App\Http\Controllers\Backend\BackendHelperController;
 use App\Http\Controllers\Backend\BackendMenuController;
 use App\Http\Controllers\Backend\BackendMenuLinkController;
-use App\Http\Controllers\Backend\BackendFileController;
-use App\Http\Controllers\Backend\BackendFaqController;
-use App\Http\Controllers\Backend\BackendContactReplyController;
-use App\Http\Controllers\Backend\BackendAnnouncementController;
+use App\Http\Controllers\Backend\BackendNotificationsController;
+use App\Http\Controllers\Backend\BackendPageController;
 use App\Http\Controllers\Backend\BackendPermissionController;
+use App\Http\Controllers\Backend\BackendPluginController;
+use App\Http\Controllers\Backend\BackendProfileController;
+use App\Http\Controllers\Backend\BackendRedirectionController;
+use App\Http\Controllers\Backend\BackendRoleController;
+use App\Http\Controllers\Backend\BackendSettingController;
+use App\Http\Controllers\Backend\BackendSiteMapController;
+use App\Http\Controllers\Backend\BackendTagController;
+use App\Http\Controllers\Backend\BackendTestController;
+use App\Http\Controllers\Backend\BackendTrafficsController;
+use App\Http\Controllers\Backend\BackendUserController;
 use App\Http\Controllers\Backend\BackendUserPermissionController;
 use App\Http\Controllers\Backend\BackendUserRoleController;
-use App\Http\Controllers\Backend\BackendRoleController;
-use App\Http\Controllers\Backend\BackendTagController;
-use App\Http\Controllers\Backend\BackendBuilderController;
-
-# Frontend Controllers
+use App\Http\Controllers\DetaineeFollowController;
 use App\Http\Controllers\FrontController;
 use App\Http\Controllers\FrontendProfileController;
+
+# Frontend Controllers
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Route;
 
 Auth::routes(['register' => true]);
 
@@ -90,6 +90,7 @@ Route::prefix('admin')->middleware(['auth'])->group(function () {
 
 Route::prefix('dashboard')->middleware(['auth', 'ActiveAccount', 'verified'])->name('user.')->group(function () {
     Route::get('/', [FrontendProfileController::class, 'dashboard'])->name('dashboard');
+    Route::get('/detainees', [FrontendProfileController::class, 'detainees'])->name('dashboard.detainees');
     Route::get('/support', [FrontendProfileController::class, 'support'])->name('support');
     Route::get('/support/create-ticket', [FrontendProfileController::class, 'create_ticket'])->name('create-ticket');
     Route::post('/support/create-ticket', [FrontendProfileController::class, 'store_ticket'])->name('store-ticket');
