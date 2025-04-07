@@ -14,7 +14,9 @@ class FrontendProfileController extends Controller
     }
     public function detainees(Request $request)
     {
-        return view('front.user.detainees');
+        $detainees = \App\Models\Detainee::where('user_id', auth()->id())->paginate(20);
+
+        return view('front.user.detainees', compact('detainees'));
     }
 
     public function balances(Request $request)
