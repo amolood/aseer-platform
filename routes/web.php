@@ -65,6 +65,7 @@ Route::post('/detainees', [FrontController::class, 'detainee_store'])->name('fro
 Route::get('/detainees/{id}/edit', [FrontController::class, 'detainee_edit'])->middleware('auth')->name('front.detainees.edit');
 // تحديث بيانات الأسير
 Route::put('/detainees/{id}', [FrontController::class, 'detainee_update'])->middleware('auth')->name('front.detainees.update');
+Route::delete('/detainees/{id}/delete', [FrontController::class, 'detainee_delete'])->name('front.detainees.delete');
 
 Route::prefix('admin')->middleware(['auth'])->group(function () {
     Route::delete('/detainees/photo/delete/{id}', [BackendDetaineeController::class, 'deletePhoto'])->name('admin.detainees.photo.delete')

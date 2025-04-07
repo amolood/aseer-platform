@@ -212,6 +212,30 @@ class FrontController extends Controller
             ->with('success', 'تم تحديث بيانات الأسير بنجاح.');
     }
 
+    public function detainee_delete($id)
+    {
+        $detainee = Detainee::findOrFail($id);
+
+        // Check if the user is authorized to delete this detainee
+        if ($detainee->user_id !== auth()->id()) {
+            abort(403, 'غير مصرح لك بحذف بيانات هذا الأسير.');
+        }
+
+        // Delete associated photos from storage
+        foreach ($detainee->photos as $photo) {
+            if (Storage::disk('public')->exists($photo->path)) {
+                Storage::disk('public')->delete($photo->path);
+            }
+        }
+
+        // Delete the detainee
+        $detainee->delete();
+
+        toastr()->success('تم حذف الأسير بنجاح');
+
+        return redirect('/dashboard/detainees');
+    }
+
     public function comment_post(Request $request)
     {
         if (auth()->check()) {
