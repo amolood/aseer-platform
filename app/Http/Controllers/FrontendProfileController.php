@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Car;
+use App\Models\CarPhoto;
 use App\Models\Detainee;
 use Illuminate\Http\Request;
 use App\Models\Contact;
@@ -54,9 +56,6 @@ class FrontendProfileController extends Controller
         return view('front.user.edit', compact('detainee'));
     }
 
-
-
-
     public function ticket(Request $request,Contact $ticket)
     {
         return view('front.user.ticket',compact('ticket'));
@@ -100,4 +99,125 @@ class FrontendProfileController extends Controller
         return view('front.user.index');
     }
 
+    public function cars_dashboard()
+    {
+        $cars = Car::where('user_id', auth()->id())
+            ->with('photos')
+            ->latest()
+            ->paginate(20);
+
+        return view('front.user.cars.index', compact('cars'));
+    }
+
+    public function car_show(Car $car)
+    {
+        if ($car->user_id !== auth()->id()) {
+            abort(403);
+        }
+
+        return view('front.user.cars.show', compact('car'));
+    }
+
+    public function car_edit(Car $car)
+    {
+        if ($car->user_id !== auth()->id()) {
+            abort(403);
+        }
+
+        return view('front.user.cars.edit', compact('car'));
+    }
+
+    public function car_update(Request $request, Car $car)
+    {
+        if ($car->user_id !== auth()->id()) {
+            abort(403);
+        }
+
+        $validated = $request->validate([
+            'make' => 'required|string|max:255',
+            'model' => 'required|string|max:255',
+            'year' => 'nullable|integer|min:1900|max:' . (date('Y') + 1),
+            'plate_number' => 'nullable|string|max:255',
+            'color' => 'nullable|string|max:255',
+            'location' => 'nullable|string|max:255',
+            'missing_date' => 'nullable|date',
+            'status' => 'required|in:missing,found,stolen',
+            'owner_name' => 'nullable|string|max:255',
+            'owner_contact' => 'nullable|string|max:255',
+            'description' => 'nullable|string',
+            'notes' => 'nullable|string',
+            'photos' => 'nullable|array',
+            'photos.*' => 'image|max:8048',
+            'featured_photo' => 'nullable|exists:car_photos,id'
+        ]);
+
+        // Handle photo uploads
+        if ($request->hasFile('photos')) {
+            foreach ($request->file('photos') as $photo) {
+                $path = $photo->store('cars', 'public');
+                CarPhoto::create([
+                    'car_id' => $car->id,
+                    'path' => $path,
+                    'is_featured' => !$car->photos()->exists()
+                ]);
+            }
+        }
+
+        // Handle featured photo
+        if ($request->filled('featured_photo')) {
+            $car->photos()->update(['is_featured' => false]);
+            CarPhoto::where('id', $request->featured_photo)
+                ->where('car_id', $car->id)
+                ->update(['is_featured' => true]);
+        }
+
+        $car->update($validated);
+        toastr()->success('تم تحديث بيانات السيارة بنجاح');
+
+        return redirect()->route('user.cars.show', $car->id);
+    }
+
+    public function car_create()
+    {
+        return view('front.user.cars.create');
+    }
+
+    public function car_store(Request $request)
+    {
+        $validated = $request->validate([
+            'make' => 'required|string|max:255',
+            'model' => 'required|string|max:255',
+            'year' => 'nullable|integer|min:1900|max:' . (date('Y') + 1),
+            'plate_number' => 'nullable|string|max:255',
+            'color' => 'nullable|string|max:255',
+            'location' => 'nullable|string|max:255',
+            'missing_date' => 'nullable|date',
+            'status' => 'required|in:missing,found,stolen',
+            'owner_name' => 'nullable|string|max:255',
+            'owner_contact' => 'nullable|string|max:255',
+            'description' => 'nullable|string',
+            'notes' => 'nullable|string',
+            'photos' => 'required|array',
+            'photos.*' => 'image|max:8048'
+        ]);
+
+        $validated['user_id'] = auth()->id();
+        $validated['is_approved'] = false;
+
+        $car = Car::create($validated);
+
+        if ($request->hasFile('photos')) {
+            foreach ($request->file('photos') as $photo) {
+                $path = $photo->store('cars', 'public');
+                CarPhoto::create([
+                    'car_id' => $car->id,
+                    'path' => $path,
+                    'is_featured' => !$car->photos()->exists()
+                ]);
+            }
+        }
+
+        toastr()->success('تم إضافة السيارة بنجاح وهي في انتظار المراجعة');
+        return redirect()->route('user.cars.show', $car->id);
+    }
 }

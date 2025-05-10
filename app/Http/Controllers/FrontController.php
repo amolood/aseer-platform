@@ -11,7 +11,8 @@ use App\Models\Contact;
 use App\Models\ArticleComment;
 use App\Models\Page;
 use App\Models\Category;
-
+use App\Models\Car;
+use App\Models\CarPhoto;
 
 class FrontController extends Controller
 {
@@ -163,6 +164,134 @@ class FrontController extends Controller
         }
     }
 
+    public function cars(Request $request)
+    {
+        $allStatuses = Car::where('is_approved', true)
+            ->select('status', \DB::raw('count(*) as total'))
+            ->groupBy('status')
+            ->pluck('total', 'status')
+            ->toArray();
+
+        $total = array_sum($allStatuses);
+        $allStatuses['total'] = $total;
+
+        $cars = Car::where('is_approved', true)
+            ->when($request->search, fn($q) => $q->where('manufacturer', 'like', '%' . $request->search . '%')
+                ->orWhere('model', 'like', '%' . $request->search . '%')
+                ->orWhere('license_plate', 'like', '%' . $request->search . '%'))
+            ->when($request->location, fn($q) => $q->where('location', $request->location))
+            ->when($request->status, fn($q) => $q->where('status', $request->status))
+            ->with('photos')
+            ->orderByDesc('id')
+            ->paginate(20);
+
+        $locations = Car::where('is_approved', true)
+            ->whereNotNull('location')
+            ->distinct()
+            ->pluck('location');
+
+        return view('front.pages.cars', compact('cars', 'locations', 'allStatuses'));
+    }
+
+    public function car_show($id)
+    {
+        $car = Car::where('is_approved', true)->findOrFail($id);
+
+        // Get similar cars based on location or status
+        $relatedCars = Car::where('is_approved', true)
+            ->where('id', '!=', $car->id)
+            ->where(function ($query) use ($car) {
+                $query->where('location', $car->location)
+                    ->orWhere('status', $car->status);
+            })
+            ->inRandomOrder()
+            ->limit(4)
+            ->get();
+
+        $photos = $car->photos;
+        $page_image = $car->photos()->where('is_featured', true)->first()->url ?? null;
+        $page_description = sprintf('%s %s %s في %s منذ %s',
+            $car->manufacturer,
+            $car->model,
+            __('car_status.' . $car->status),
+            $car->location,
+            $car->missing_date ? $car->missing_date->format('Y-m-d') : 'تاريخ غير معروف'
+        );
+
+        return view('front.pages.car-show', compact('car', 'relatedCars', 'photos', 'page_image', 'page_description'));
+    }
+
+    public function car_create()
+    {
+        return view('front.pages.car-create');
+    }
+
+    public function car_store(Request $request)
+    {
+        if (!$request->isMethod('post')) {
+            abort(405);
+        }
+
+        $data = $request->validate([
+            'license_plate' => 'nullable|string|max:255',
+            'manufacturer' => 'required|string|max:255',
+            'model' => 'required|string|max:255',
+            'year' => 'nullable|integer|min:1900|max:' . (date('Y') + 1),
+            'color' => 'nullable|string|max:255',
+            'location' => 'nullable|string|max:255',
+            'missing_date' => 'nullable|date',
+            'status' => 'required|in:missing,found,stolen',
+            'owner_name' => 'nullable|string|max:255',
+            'owner_contact' => 'nullable|string|max:255',
+            'description' => 'nullable|string',
+            'notes' => 'nullable|string',
+            'source' => 'nullable|string|max:255',
+            'photos' => 'required|array',
+            'photos.*' => 'image|max:8048',
+        ]);
+
+        $data['is_approved'] = false;
+
+        $car = Car::create($data);
+
+        if ($request->hasFile('photos')) {
+            foreach ($request->file('photos') as $index => $photo) {
+                $path = $photo->store('cars', 'public');
+
+                CarPhoto::create([
+                    'car_id' => $car->id,
+                    'path' => $path,
+                    'is_featured' => !$car->photos()->exists() && $index === 0,
+                ]);
+            }
+        }
+
+        if (auth()->check()) {
+            $car->user_id = auth()->id();
+            $car->save();
+        }
+
+        return view('front.pages.thanks');
+    }
+
+    public function reportCar(Request $request, Car $car)
+    {
+        $request->validate([
+            'details' => 'required|string',
+            'location' => 'required|string|max:255',
+            'contact_info' => 'nullable|string|max:255',
+        ]);
+
+        $car->reports()->create([
+            'user_id' => auth()->id(),
+            'location' => $request->location,
+            'details' => $request->details,
+            'contact_info' => $request->contact_info,
+            'report_type' => 'sighting'
+        ]);
+
+        return back()->with('success', 'تم إرسال البلاغ، شكرًا لمساهمتك.');
+    }
 
     public function reportSeen(Request $request, Detainee $detainee)
     {
@@ -197,11 +326,6 @@ class FrontController extends Controller
 
         return back()->with('success', 'تم إرسال الملاحظة، سيتم مراجعتها من الإدارة.');
     }
-
-
-
-
-
 
     public function comment_post(Request $request)
     {
