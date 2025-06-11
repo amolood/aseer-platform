@@ -229,8 +229,26 @@
                     </a>
                     @endcan
 
+                    @can('cars-read')
+                    <a href="{{route('admin.cars.index')}}" class="col-12 px-0" >
+                        <div class="col-12 item-container px-0 d-flex " >
+                            <div style="width: 50px" class="px-3 text-center">
+                                <span class="fal fa-car font-2"> </span>
+                            </div>
+                            <div style="width: calc(100% - 50px)" class="px-2 item-container-title">
+                                السيارات
+                                @php
+                                    $notApprovedCars = \App\Models\Car::where('is_approved',0)->count();
+                                @endphp
+                                @if($notApprovedCars)
+                                    <span style="background: #d34339;border-radius: 2px;color:var(--background-1);display: inline-block;font-size: 11px;text-align: center;padding: 1px 5px;margin: 0px 8px">{{$notApprovedCars}}</span>
+                                @endif
+                            </div>
+                        </div>
+                    </a>
+                    @endcan
 
-                      @can('roles-read')
+                    @can('roles-read')
                     <a href="{{route('admin.roles.index')}}" class="col-12 px-0" >
                         <div class="col-12 item-container px-0 d-flex " >
                             <div style="width: 50px" class="px-3 text-center">

@@ -15,7 +15,6 @@ class DetaineeSeeder extends Seeder
                 'name' => 'محمد أحمد',
                 'gender' => 'male',
                 'birth_date' => '1982-09-20',
-                'national_id' => '6098603874',
                 'location' => 'الرياض',
                 'detention_date' => '2024-08-25',
                 'status' => 'martyr',

@@ -35,6 +35,7 @@ use App\Http\Controllers\Backend\BackendUserRoleController;
 use App\Http\Controllers\Backend\BackendRoleController;
 use App\Http\Controllers\Backend\BackendTagController;
 use App\Http\Controllers\Backend\BackendBuilderController;
+use App\Http\Controllers\Backend\BackendCarController;
 
 # Frontend Controllers
 use App\Http\Controllers\FrontController;
@@ -109,6 +110,39 @@ Route::prefix('admin')->middleware(['auth','phone.verified'])->group(function ()
     Route::delete('/detainees/{detainee}', [BackendDetaineeController::class, 'destroy'])->name('admin.detainees.destroy');
 });
 
+// Cars Module Routes
+Route::prefix('admin')->middleware(['auth','phone.verified'])->group(function () {
+    Route::delete('/cars/photo/delete/{id}', [BackendCarController::class, 'deletePhoto'])->name('admin.cars.photo.delete')
+        ->middleware('can:cars-update');
+
+    Route::post('/cars/photo/featured/{id}', [BackendCarController::class, 'setFeatured'])->name('admin.cars.photo.featured')
+        ->middleware('can:cars-update');
+
+    Route::put('/cars/{car}/status', [BackendCarController::class, 'updateStatus'])
+        ->name('admin.cars.update_status')
+        ->middleware('can:cars-update');
+
+    Route::get('/cars', [BackendCarController::class, 'index'])->name('admin.cars.index');
+    Route::get('/cars/create', [BackendCarController::class, 'create'])->name('admin.cars.create');
+    Route::post('/cars', [BackendCarController::class, 'store'])->name('admin.cars.store');
+    Route::get('/cars/{car}/edit', [BackendCarController::class, 'edit'])->name('admin.cars.edit');
+    Route::put('/cars/{car}', [BackendCarController::class, 'update'])->name('admin.cars.update');
+    Route::delete('/cars/{car}', [BackendCarController::class, 'destroy'])->name('admin.cars.destroy');
+    Route::get('/cars/{car}', [BackendCarController::class, 'show'])->name('admin.cars.show');
+    Route::post('/cars/{car}/approve', [BackendCarController::class, 'approve'])->name('admin.cars.approve');
+    Route::patch('/cars/{id}/unapprove', [BackendCarController::class, 'unapprove'])->name('admin.cars.unapprove');
+});
+
+// Front-end car routes
+Route::get('/cars', [FrontController::class, 'cars'])->name('front.cars');
+Route::get('/cars/{id}', [FrontController::class, 'car_show'])->name('front.cars.show');
+Route::post('cars/{car}/report', [FrontController::class, 'reportCar'])->name('front.cars.report');
+
+// Authenticated user car routes
+Route::middleware(['auth','phone.verified'])->group(function () {
+    Route::get('/cars/create', [FrontController::class, 'car_create'])->name('front.cars.create');
+    Route::post('/cars', [FrontController::class, 'car_store'])->name('front.cars.store');
+});
 
 Route::prefix('dashboard')->middleware(['auth','phone.verified','ActiveAccount', 'verified'])->name('user.')->group(function () {
     Route::get('/detainees/index', [FrontendProfileController::class, 'dashboard'])->name('detainees.index');
@@ -116,6 +150,12 @@ Route::prefix('dashboard')->middleware(['auth','phone.verified','ActiveAccount',
     Route::get('/detainees/{detainee}/edit', [FrontendProfileController::class, 'edit'])->name('detainees.edit');
     Route::put('/detainees/{detainee}', [FrontendProfileController::class, 'update'])->name('detainees.update');
 
+    Route::get('/cars/index', [FrontendProfileController::class, 'cars_dashboard'])->name('cars.index');
+    Route::get('/cars/create', [FrontendProfileController::class, 'car_create'])->name('cars.create');
+    Route::post('/cars', [FrontendProfileController::class, 'car_store'])->name('cars.store');
+    Route::get('/cars/{car}', [FrontendProfileController::class, 'car_show'])->name('cars.show');
+    Route::get('/cars/{car}/edit', [FrontendProfileController::class, 'car_edit'])->name('cars.edit');
+    Route::put('/cars/{car}', [FrontendProfileController::class, 'car_update'])->name('cars.update');
 
     Route::get('/', [FrontendProfileController::class, 'dashboard'])->name('dashboard');
     Route::get('/support', [FrontendProfileController::class, 'support'])->name('support');

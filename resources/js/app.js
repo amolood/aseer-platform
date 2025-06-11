@@ -13,11 +13,11 @@ import FilePondPluginFileValidateSize from 'filepond-plugin-file-validate-size';
 import 'filepond-plugin-image-preview/dist/filepond-plugin-image-preview.css';
 
 import Sortable from 'sortablejs/modular/sortable.complete.esm.js';
-import './js/bootstrap.bundle.min.js';
-import './js/main.js';
-// import './js/validatorjs.min.js';
-// import './assets/js/theme.js';
-// import './assets/js/plugins.js';
+import '/public/js/bootstrap.bundle.min.js';
+import '/public/js/main.js';
+// import '/public/js/validatorjs.min.js';
+// import '/public/assets/js/theme.js';
+// import '/public/assets/js/plugins.js';
 
 // Register FilePond Plugins
 FilePond.registerPlugin(

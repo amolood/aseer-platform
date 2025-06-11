@@ -29,7 +29,9 @@
                                     <a href="{{route('user.detainees.index')}}" class="user-menu d-flex align-items-center col-auto justify-content-lg-center justify-content-start py-3 px-2" style="min-width:120px;border-bottom:6px solid transparent;height: 100%;color: inherit;transition: 0s all ease;">
                                         <span class="fal fa-home mx-2"></span> الأسرى الذين أضفتهم
                                     </a>
-
+                                    <a href="{{route('user.cars.index')}}" class="user-menu d-flex align-items-center col-auto justify-content-lg-center justify-content-start py-3 px-2" style="min-width:120px;border-bottom:6px solid transparent;height: 100%;color: inherit;transition: 0s all ease;">
+                                        <span class="fal fa-car mx-2"></span> السيارات
+                                    </a>
                                     <a href="{{route('user.support')}}" class="user-menu d-flex align-items-center col-auto justify-content-lg-center justify-content-start py-3 px-2" style="min-width:120px;border-bottom:6px solid transparent;height: 100%;color: inherit;transition: 0s all ease;">
                                         <span class="fal fa-comments-alt mx-2"></span> الدعم
                                     </a>

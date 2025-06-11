@@ -24,6 +24,7 @@ class DatabaseSeeder extends Seeder
             AttachSuperAdminPermissions::class,
             DetaineeSeeder::class,
             DetaineePermissionsSeeder::class,
+            CarPermissionsSeeder::class,
         ]);
     }
 }
