@@ -17,7 +17,7 @@ Live [Aseer Platform](https://aseer.net/)
 
 - ✅ Detainee management module with photos , details, and status
 - ✅ Missing persons management module with photos , details, and status
-- ❌ Stolen cars management module with photos , details, and status
+- ✅ Stolen cars management module with photos , details, and status
 - ❌ national initiatives management module , listing , how to donate , etc
 - ✅ Admin dashboard with permissions (Spatie Permissions)
 - ✅ Export to PDF and Excel
